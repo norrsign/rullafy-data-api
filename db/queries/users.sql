@@ -8,9 +8,10 @@ ORDER BY id;
 
 -- name: CreateUser :one
 INSERT INTO users (
+   id,
    job
 ) VALUES (
-  $1 
+  $1, $2
 )
 RETURNING *;
 

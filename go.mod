@@ -22,7 +22,4 @@ require (
 	golang.org/x/text v0.24.0 // indirect
 )
 
-replace (
-
-	github.com/vanern/goapi => ../../goapi
-)
+replace github.com/vanern/goapi => ../../goapi
