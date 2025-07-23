@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
+	"github.com/norrsign/rullafy-data-api/internal/config"
+	"github.com/norrsign/rullafy-data-api/internal/typs"
+	"github.com/norrsign/rullafy-data-api/internal/utils"
 	"github.com/sirupsen/logrus"
-	"github.com/you/rullafy-data-api/internal/config"
-	"github.com/you/rullafy-data-api/internal/typs"
-	"github.com/you/rullafy-data-api/internal/utils"
 )
 
 func init() {
