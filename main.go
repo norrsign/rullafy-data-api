@@ -13,14 +13,14 @@ import (
 	"github.com/vanern/goapi/cli"
 	"github.com/vanern/goapi/framework"
 	"github.com/vanern/goapi/framework/middleware/auth"
+	"github.com/vanern/goapi/types"
 )
 
-func serv() {
-	// use UTC for timestamping
+func serverAfterConfigHook() error {
 	os.Setenv("TZ", "UTC")
 
 	// initialize DB (requires $DATABASE_URL)
-	connStr := os.Getenv("DATABASE_URL", "")
+	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
 		logrus.Fatal("DATABASE_URL environment variable is required")
 	}
@@ -46,12 +46,19 @@ func serv() {
 	gr.GET("", func(c *gin.Context) {
 		c.String(http.StatusOK, "protected\n")
 	})
+
+	return nil
 }
 
+func tokenAfterConfigHook() error {
+	return nil
+}
 func main() {
 	// start service (blocks until shutdown)
-	cli.Run(serv)
 
+	cli.AddRunHook(types.TokenAfterConfigHook, tokenAfterConfigHook)
+	cli.AddRunHook(types.ServerAfterConfigHook, serverAfterConfigHook)
+	cli.Run()
 	// once HTTP servers are down, close DB pool
 	db.CloseDB()
 }
