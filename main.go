@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/norrsign/rullafy-data-api/db"
+	"github.com/norrsign/rullafy-data-api/endpoints"
 	"github.com/sirupsen/logrus"
 
 	"github.com/vanern/goapi/cli"
@@ -16,11 +17,13 @@ import (
 	"github.com/vanern/goapi/types"
 )
 
+
 func serverAfterConfigHook() error {
 	os.Setenv("TZ", "UTC")
-
+	fmt.Println("Setting timezone to UTC")
 	// initialize DB (requires $DATABASE_URL)
 	connStr := os.Getenv("DATABASE_URL")
+	fmt.Println("Using DATABASE_URL:", connStr)
 	if connStr == "" {
 		logrus.Fatal("DATABASE_URL environment variable is required")
 	}
@@ -35,18 +38,18 @@ func serverAfterConfigHook() error {
 	// register routes
 	gn := framework.RegisterGin(":8080")
 
-	// health check
+	// ping check
 	gn.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong\n")
 	})
 
-	// protected endpoint
-	gr := gn.Group("/protected")
-	gr.Use(auth.JWTAuth("rullafy-client"))
-	gr.GET("", func(c *gin.Context) {
-		c.String(http.StatusOK, "protected\n")
+	// admin endpoint
+	adminGroup := gn.Group("/admin")
+	adminGroup.Use(auth.JWTAuth("rullafy-client"))
+	adminGroup.GET("", func(c *gin.Context) {
+		c.String(http.StatusOK, "admin\n")
 	})
-
+	endpoints.RegisterUserEndpoints(gn.Group("/users"))
 	return nil
 }
 

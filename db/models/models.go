@@ -4,25 +4,8 @@
 
 package models
 
-import (
-	"github.com/jackc/pgx/v5/pgtype"
-)
-
-type Company struct {
-	ID      string
-	Name    string
-	Address pgtype.Text
-	Phone   pgtype.Text
-}
-
-type Product struct {
-	ID          string
-	Name        string
-	Type        string
-	Description string
-}
-
 type User struct {
-	ID  string
-	Job string
+	ID      string
+	Job     string
+	Address AddressList
 }

@@ -1,24 +1,5 @@
 CREATE TABLE users (
-  id       text PRIMARY KEY,
-  job      text NOT NULL
+  id       TEXT PRIMARY KEY,
+  job      TEXT NOT NULL,
+  address  JSONB NOT NULL DEFAULT '[]'::JSONB
 );
-
-CREATE TABLE companies (
-  id       text PRIMARY KEY,
-  name     text NOT NULL,
-  address  text,
-  phone    text
-);
-
-
- 
-
-CREATE TABLE products (
-  id       text PRIMARY KEY,
-  name     text NOT NULL,
-  type     text NOT NULL,
-  description text NOT NULL
-);
-
-
-

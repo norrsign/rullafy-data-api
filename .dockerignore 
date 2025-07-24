@@ -1,0 +1,7 @@
+_work
+db/migrations
+log.log 
+docker-compose.yml
+.env
+
+

@@ -23,24 +23,27 @@ func (q *Queries) CountUsers(ctx context.Context) (int32, error) {
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   id,
-  job
+  job,
+  address
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 )
-RETURNING id, job
+RETURNING id, job, address
 `
 
 type CreateUserParams struct {
-	ID  string
-	Job string
+	ID      string
+	Job     string
+	Address AddressList
 }
 
-// id:  string
-// job: string
+// id:      string
+// job:     string
+// address: models.AddressList
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.ID, arg.Job)
+	row := q.db.QueryRow(ctx, createUser, arg.ID, arg.Job, arg.Address)
 	var i User
-	err := row.Scan(&i.ID, &i.Job)
+	err := row.Scan(&i.ID, &i.Job, &i.Address)
 	return i, err
 }
 
@@ -56,7 +59,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id string) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, job
+SELECT id, job, address
 FROM users
 WHERE id = $1
 LIMIT 1
@@ -66,12 +69,12 @@ LIMIT 1
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
-	err := row.Scan(&i.ID, &i.Job)
+	err := row.Scan(&i.ID, &i.Job, &i.Address)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, job
+SELECT id, job, address
 FROM users
 ORDER BY id
 LIMIT  $1
@@ -94,7 +97,45 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	var items []User
 	for rows.Next() {
 		var i User
-		if err := rows.Scan(&i.ID, &i.Job); err != nil {
+		if err := rows.Scan(&i.ID, &i.Job, &i.Address); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchUsersByAddress = `-- name: SearchUsersByAddress :many
+SELECT id, job, address
+FROM users
+WHERE address @> $1  -- JSONB “contains” operator
+ORDER BY id
+LIMIT  $2
+OFFSET $3
+`
+
+type SearchUsersByAddressParams struct {
+	Address AddressList
+	Limit   int32
+	Offset  int32
+}
+
+// address: AddressList
+// limit:  int32
+// offset: int32
+func (q *Queries) SearchUsersByAddress(ctx context.Context, arg SearchUsersByAddressParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, searchUsersByAddress, arg.Address, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(&i.ID, &i.Job, &i.Address); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -107,21 +148,24 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET job = $2
+SET job = $2,
+    address = $3
 WHERE id = $1
-RETURNING id, job
+RETURNING id, job, address
 `
 
 type UpdateUserParams struct {
-	ID  string
-	Job string
+	ID      string
+	Job     string
+	Address AddressList
 }
 
-// id:  string
-// job: string
+// id:      string
+// job:     string
+// address: models.AddressList
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Job)
+	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Job, arg.Address)
 	var i User
-	err := row.Scan(&i.ID, &i.Job)
+	err := row.Scan(&i.ID, &i.Job, &i.Address)
 	return i, err
 }

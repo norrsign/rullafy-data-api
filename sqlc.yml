@@ -8,3 +8,14 @@ sql:
         package: "models"
         out: "db/models"
         sql_package: "pgx/v5"
+        overrides:
+    
+          - column: users.address
+            go_type:
+                 import: ""
+    
+                 type: "AddressList"
+        
+
+ 
+   
