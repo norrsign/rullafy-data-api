@@ -2,31 +2,56 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/norrsign/rullafy-data-api/db"
-	"github.com/norrsign/rullafy-data-api/endpoints"
-	"github.com/norrsign/rullafy-data-api/repositories"
+	"github.com/sirupsen/logrus"
+
 	"github.com/vanern/goapi/cli"
-	"github.com/vanern/goapi/framework/middleware"
+	"github.com/vanern/goapi/framework"
 	"github.com/vanern/goapi/framework/middleware/auth"
 )
 
-func main() {
+func serv() {
+	// use UTC for timestamping
 	os.Setenv("TZ", "UTC")
 
-	db.InitDB("postgresql://myuser:mypassword@localhost:5432/mydatabase")
-	userRepo := repositories.NewUserRepo(db.Qrs)
-	endpoints.RegisterUser(userRepo)
+	// initialize DB (requires $DATABASE_URL)
+	connStr := os.Getenv("DATABASE_URL", "")
+	if connStr == "" {
+		logrus.Fatal("DATABASE_URL environment variable is required")
+	}
+	if err := db.InitDB(connStr); err != nil {
+		logrus.Fatalf("failed to init DB: %v", err)
+	}
 
+	// start time log
 	now := time.Now()
 	fmt.Printf("Starting server at %s\n", now.Format(time.RFC3339))
-	// Global logging middleware
-	middleware.Use(auth.KeycloakJwt("rullafy-client"))
-	//endpoints.Init()
-	//middleware.Use(Test1())
-	//middleware.Use(Test2())
 
-	cli.Run()
+	// register routes
+	gn := framework.RegisterGin(":8080")
+
+	// health check
+	gn.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pong\n")
+	})
+
+	// protected endpoint
+	gr := gn.Group("/protected")
+	gr.Use(auth.JWTAuth("rullafy-client"))
+	gr.GET("", func(c *gin.Context) {
+		c.String(http.StatusOK, "protected\n")
+	})
+}
+
+func main() {
+	// start service (blocks until shutdown)
+	cli.Run(serv)
+
+	// once HTTP servers are down, close DB pool
+	db.CloseDB()
 }

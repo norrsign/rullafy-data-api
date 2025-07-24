@@ -3,16 +3,27 @@
 //   sqlc v1.29.0
 // source: users.sql
 
-package db
+package models
 
 import (
 	"context"
 )
 
+const countUsers = `-- name: CountUsers :one
+SELECT COUNT(*)::int4 FROM users
+`
+
+func (q *Queries) CountUsers(ctx context.Context) (int32, error) {
+	row := q.db.QueryRow(ctx, countUsers)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-   id,
-   job
+  id,
+  job
 ) VALUES (
   $1, $2
 )
@@ -24,6 +35,8 @@ type CreateUserParams struct {
 	Job string
 }
 
+// id:  string
+// job: string
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser, arg.ID, arg.Job)
 	var i User
@@ -36,16 +49,20 @@ DELETE FROM users
 WHERE id = $1
 `
 
+// id: string
 func (q *Queries) DeleteUser(ctx context.Context, id string) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, job FROM users
-WHERE id = $1 LIMIT 1
+SELECT id, job
+FROM users
+WHERE id = $1
+LIMIT 1
 `
 
+// id: string
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
@@ -54,12 +71,22 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, job FROM users
+SELECT id, job
+FROM users
 ORDER BY id
+LIMIT  $1
+OFFSET $2
 `
 
-func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUsers)
+type ListUsersParams struct {
+	Limit  int32
+	Offset int32
+}
+
+// limit:  int32
+// offset: int32
+func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, listUsers, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +107,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
-  set    job = $2
+SET job = $2
 WHERE id = $1
 RETURNING id, job
 `
@@ -90,6 +117,8 @@ type UpdateUserParams struct {
 	Job string
 }
 
+// id:  string
+// job: string
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Job)
 	var i User

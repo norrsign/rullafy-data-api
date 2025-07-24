@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.29.0
 
-package db
+package models
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"

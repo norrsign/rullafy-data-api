@@ -2,25 +2,23 @@ package db
 
 import (
 	"context"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/norrsign/rullafy-data-api/db/models"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	pool    *pgxpool.Pool // internal connection pool
-	Qrs     *Queries      // shared sqlc handle
+	pool    *pgxpool.Pool
+	Qrs     *models.Queries
 	initErr error
 	once    sync.Once
 )
 
-// Init sets up the global connection pool exactly once.
-// Call this early from main() or a services.Init() helper.
+// InitDB sets up the global connection pool exactly once.
+// Call this early in application startup.
 func InitDB(connString string) error {
 	once.Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -36,27 +34,15 @@ func InitDB(connString string) error {
 			return
 		}
 
-		Qrs = New(pool) // sqlc handle
-		registerShutdownHook()
+		Qrs = models.New(pool)
 	})
 	return initErr
 }
 
-// Close manually closes the pool. Normally called by the shutdown hook.
-func close() {
+// CloseDB closes the database connection pool.
+func CloseDB() {
 	if pool != nil {
 		pool.Close()
 		logrus.Info("database pool closed")
 	}
-}
-
-// internal graceful-shutdown hook
-func registerShutdownHook() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		sig := <-c
-		logrus.Infof("signal %s received - shutting down db pool...", sig)
-		close()
-	}()
 }
